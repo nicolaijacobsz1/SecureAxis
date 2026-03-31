@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecureAxis</title>
+
+  <!-- Fonts: DM Serif Display (Brier-like) + Space Grotesk (Mona Sans-like) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ════════════════════════════════════════════════════════════════
+       DESIGN TOKENS
+    ════════════════════════════════════════════════════════════════ */
+    :root {
+      --bg:        #080A08;
+      --bg2:       #0E110E;
+      --surface:   #131713;
+      --border:    rgba(255,255,255,0.06);
+      --text:      #F2F5F2;
+      --muted:     #6B7A6B;
+      --green:     #00FF85;
+      --green-dim: rgba(0,255,133,0.08);
+      --green-mid: rgba(0,255,133,0.15);
+      --serif:     'DM Serif Display', serif;
+      --sans:      'Space Grotesk', sans-serif;
+      --ease-out:  cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-io:   cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       RESET
+    ════════════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      overflow-x: hidden;
+      cursor: none;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ════════════════════════════════════════════════════════════════
+       CUSTOM CURSOR
+    ════════════════════════════════════════════════════════════════ */
+    #cur {
+      position: fixed;
+      z-index: 9999;
+      top: 0; left: 0;
+      pointer-events: none;
+      mix-blend-mode: difference;
+    }
+    #cur-ball {
+      width: 12px; height: 12px;
+      background: var(--green);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width .25s var(--ease-out), height .25s var(--ease-out);
+    }
+    #cur-ring {
+      position: fixed;
+      top: 0; left: 0;
+      width: 44px; height: 44px;
+      border: 1px solid rgba(0,255,133,0.4);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 9998;
+      transition: width .3s var(--ease-out), height .3s var(--ease-out);
+    }
+    body.hovering #cur-ball  { width: 60px; height: 60px; }
+    body.hovering #cur-ring  { opacity: 0; }
+
+    /* ════════════════════════════════════════════════════════════════
+       NAV
+    ════════════════════════════════════════════════════════════════ */
+    #nav {
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.75rem 2.75rem;
+      transition: background .5s, border-bottom .5s;
+    }
+    #nav.solid {
+      background: rgba(8,10,8,.88);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: var(--serif);
+      font-size: 1.35rem;
+      letter-spacing: -.01em;
+      display: flex;
+      align-items: center;
+      gap: .2rem;
+    }
+    .nav-logo .accent { color: var(--green); }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2.5rem;
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: .8rem;
+      font-weight: 500;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-btn {
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: .55rem 1.5rem;
+      border: 1px solid var(--green);
+      border-radius: 100px;
+      color: var(--green) !important;
+      transition: background .25s, color .25s !important;
+    }
+    .nav-btn:hover {
+      background: var(--green) !important;
+      color: var(--bg) !important;
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       HERO
+    ════════════════════════════════════════════════════════════════ */
+    #hero {
+      position: relative;
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 0 2.75rem 4.5rem;
+      overflow: hidden;
+    }
+
+    /* Radial green glow top-right */
+    .hero-glow {
+      position: absolute;
+      top: -20%;
+      right: -10%;
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle at center,
+        rgba(0,255,133,.13) 0%,
+        rgba(0,255,133,.04) 35%,
+        transparent 65%);
+      pointer-events: none;
+    }
+
+    /* Fine dot grid */
+    .hero-dots {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(0,255,133,.18) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: radial-gradient(ellipse 60% 50% at 80% 30%, black 0%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 60% 50% at 80% 30%, black 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* Diagonal accent line */
+    .hero-line {
+      position: absolute;
+      top: 0; right: 18%;
+      width: 1px;
+      height: 100%;
+      background: linear-gradient(to bottom, transparent 0%, var(--green) 40%, transparent 100%);
+      opacity: .12;
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: .6rem;
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: riseIn .9s var(--ease-out) .1s forwards;
+    }
+    .hero-eyebrow::before {
+      content: '';
+      width: 24px; height: 1px;
+      background: var(--green);
+    }
+
+    .hero-title {
+      position: relative;
+      z-index: 1;
+      font-family: var(--serif);
+      font-size: clamp(4rem, 10vw, 11.5rem);
+      line-height: .92;
+      letter-spacing: -.03em;
+      max-width: 16ch;
+      opacity: 0;
+      animation: riseIn 1.1s var(--ease-out) .25s forwards;
+    }
+    .hero-title .line-italic {
+      font-style: italic;
+      color: var(--green);
+    }
+
+    .hero-bottom {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-top: 3rem;
+      opacity: 0;
+      animation: riseIn .9s var(--ease-out) .55s forwards;
+    }
+    .hero-sub {
+      max-width: 40ch;
+      font-size: 1.05rem;
+      font-weight: 300;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+    .hero-cta-group {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 1rem;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: .6rem;
+      padding: 1rem 2.25rem;
+      background: var(--green);
+      color: var(--bg);
+      font-size: .9rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      border-radius: 100px;
+      transition: transform .3s var(--ease-out), box-shadow .3s var(--ease-out);
+      white-space: nowrap;
+    }
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 40px rgba(0,255,133,.25);
+    }
+    .hero-scroll {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .72rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .hero-scroll-line {
+      display: block;
+      width: 1px;
+      height: 40px;
+      background: linear-gradient(to bottom, var(--muted), transparent);
+      animation: scrollBlink 2.5s ease-in-out infinite;
+    }
+
+    /* Number strip */
+    .hero-count {
+      position: absolute;
+      right: 2.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      opacity: 0;
+      animation: fadeIn .8s ease 1s forwards;
+    }
+    .hero-count-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .3rem;
+    }
+    .hero-count-item .n {
+      font-family: var(--serif);
+      font-size: 2rem;
+      line-height: 1;
+      color: var(--text);
+    }
+    .hero-count-item .n span { color: var(--green); }
+    .hero-count-item .l {
+      font-size: .62rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+      writing-mode: vertical-rl;
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       TICKER
+    ════════════════════════════════════════════════════════════════ */
+    .ticker-wrap {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: .85rem 0;
+      overflow: hidden;
+    }
+    .ticker-track {
+      display: inline-flex;
+      gap: 0;
+      animation: ticker 30s linear infinite;
+      white-space: nowrap;
+    }
+    .ticker-item {
+      display: inline-flex;
+      align-items: center;
+      padding: 0 2.5rem;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-right: 1px solid var(--border);
+      gap: 1rem;
+    }
+    .ticker-item .dot { width: 5px; height: 5px; background: var(--green); border-radius: 50%; }
+
+    /* ════════════════════════════════════════════════════════════════
+       SHARED SECTION HELPERS
+    ════════════════════════════════════════════════════════════════ */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 2.75rem; }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 1.25rem;
+    }
+    .tag::before { content: ''; width: 18px; height: 1px; background: var(--green); }
+
+    .display-heading {
+      font-family: var(--serif);
+      font-size: clamp(2.75rem, 5.5vw, 6rem);
+      line-height: .97;
+      letter-spacing: -.03em;
+    }
+    .display-heading em { font-style: italic; color: var(--green); }
+
+    /* Reveal */
+    [data-reveal] {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity .9s var(--ease-out), transform .9s var(--ease-out);
+    }
+    [data-reveal].on  { opacity: 1; transform: none; }
+    [data-reveal][data-delay="1"] { transition-delay: .1s; }
+    [data-reveal][data-delay="2"] { transition-delay: .2s; }
+    [data-reveal][data-delay="3"] { transition-delay: .3s; }
+    [data-reveal][data-delay="4"] { transition-delay: .4s; }
+    [data-reveal][data-delay="5"] { transition-delay: .5s; }
+
+    /* ════════════════════════════════════════════════════════════════
+       SERVICES SECTION
+    ════════════════════════════════════════════════════════════════ */
+    #services {
+      padding: 10rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .services-top {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: end;
+      margin-bottom: 6rem;
+    }
+    .services-top .right {
+      font-size: 1.05rem;
+      font-weight: 300;
+      color: var(--muted);
+      line-height: 1.8;
+      padding-bottom: .5rem;
+    }
+
+    .service-row {
+      display: flex;
+      align-items: stretch;
+      border-top: 1px solid var(--border);
+      cursor: default;
+      transition: background .35s;
+      position: relative;
+      overflow: hidden;
+    }
+    .service-row::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--green-dim);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .5s var(--ease-out);
+    }
+    .service-row:hover::before { transform: scaleX(1); }
+
+    .service-row:last-child { border-bottom: 1px solid var(--border); }
+
+    .sr-num {
+      flex-shrink: 0;
+      width: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid var(--border);
+      font-family: var(--serif);
+      font-size: .9rem;
+      color: var(--muted);
+      padding: 2.5rem 1rem;
+      position: relative;
+      z-index: 1;
+      transition: color .3s;
+    }
+    .service-row:hover .sr-num { color: var(--green); }
+
+    .sr-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.5fr 2fr auto;
+      align-items: center;
+      gap: 2rem;
+      padding: 2.5rem 2.5rem;
+      position: relative;
+      z-index: 1;
+    }
+    .sr-name {
+      font-family: var(--serif);
+      font-size: clamp(1.4rem, 2.2vw, 2rem);
+      letter-spacing: -.02em;
+      transition: color .3s;
+    }
+    .service-row:hover .sr-name { color: var(--green); }
+
+    .sr-desc {
+      font-size: .9rem;
+      font-weight: 300;
+      color: var(--muted);
+      line-height: 1.7;
+      transition: color .3s;
+    }
+    .service-row:hover .sr-desc { color: var(--text); }
+
+    .sr-icon {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      flex-shrink: 0;
+      transition: border-color .3s, color .3s, transform .4s var(--ease-out);
+    }
+    .service-row:hover .sr-icon {
+      border-color: var(--green);
+      color: var(--green);
+      transform: rotate(45deg);
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       MISSION SECTION
+    ════════════════════════════════════════════════════════════════ */
+    #mission {
+      padding: 10rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .mission-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8rem;
+      align-items: start;
+    }
+    .mission-left { position: sticky; top: 8rem; }
+    .mission-left .display-heading { margin-bottom: 2.5rem; }
+    .mission-left p {
+      font-size: 1.05rem;
+      font-weight: 300;
+      color: var(--muted);
+      line-height: 1.85;
+      margin-bottom: 1.5rem;
+    }
+
+    .mission-right {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      padding-top: 1rem;
+    }
+    .pillar-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem 2rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1.5rem;
+      transition: border-color .3s, background .3s;
+    }
+    .pillar-card:hover {
+      border-color: rgba(0,255,133,.2);
+      background: #161B16;
+    }
+    .pillar-icon {
+      width: 40px; height: 40px;
+      flex-shrink: 0;
+      border-radius: 10px;
+      background: var(--green-dim);
+      border: 1px solid rgba(0,255,133,.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--green);
+    }
+    .pillar-card h4 {
+      font-family: var(--serif);
+      font-size: 1.15rem;
+      letter-spacing: -.01em;
+      margin-bottom: .35rem;
+    }
+    .pillar-card p {
+      font-size: .9rem;
+      font-weight: 300;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       STATS BAR
+    ════════════════════════════════════════════════════════════════ */
+    #stats {
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .stat-cell {
+      padding: 4rem 3rem;
+      border-right: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-cell:last-child { border-right: none; }
+    .stat-cell::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--green);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .6s var(--ease-out);
+    }
+    .stat-cell:hover::after { transform: scaleX(1); }
+
+    .stat-num {
+      font-family: var(--serif);
+      font-size: clamp(2.5rem, 4vw, 4rem);
+      line-height: 1;
+      letter-spacing: -.04em;
+      color: var(--text);
+      margin-bottom: .5rem;
+    }
+    .stat-num sup { color: var(--green); font-size: .6em; vertical-align: super; }
+    .stat-label {
+      font-size: .8rem;
+      font-weight: 400;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       PROCESS
+    ════════════════════════════════════════════════════════════════ */
+    #process {
+      padding: 10rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .process-head {
+      text-align: center;
+      margin-bottom: 7rem;
+    }
+    .process-head .display-heading { margin-top: 1rem; }
+
+    .process-row {
+      display: grid;
+      grid-template-columns: 80px 1fr 1fr;
+      gap: 2rem;
+      align-items: center;
+      padding: 3rem 0;
+      border-top: 1px solid var(--border);
+      transition: background .3s;
+    }
+    .process-row:last-child { border-bottom: 1px solid var(--border); }
+    .p-num {
+      font-family: var(--serif);
+      font-size: .9rem;
+      color: var(--muted);
+      padding-left: .25rem;
+    }
+    .p-title {
+      font-family: var(--serif);
+      font-size: clamp(1.5rem, 2.5vw, 2.25rem);
+      letter-spacing: -.025em;
+    }
+    .p-desc {
+      font-size: .95rem;
+      font-weight: 300;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       CONTACT / CTA
+    ════════════════════════════════════════════════════════════════ */
+    #contact {
+      padding: 10rem 0 8rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .contact-glow {
+      position: absolute;
+      bottom: -20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px; height: 600px;
+      background: radial-gradient(ellipse at center,
+        rgba(0,255,133,.1) 0%,
+        transparent 65%);
+      pointer-events: none;
+    }
+
+    .contact-inner {
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+    .contact-inner .display-heading {
+      font-size: clamp(3rem, 8vw, 9rem);
+      margin-bottom: 2.5rem;
+    }
+    .contact-inner p {
+      font-size: 1.1rem;
+      font-weight: 300;
+      color: var(--muted);
+      line-height: 1.75;
+      max-width: 50ch;
+      margin: 0 auto 3.5rem;
+    }
+    .cta-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      margin-bottom: 5rem;
+    }
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: .6rem;
+      padding: 1rem 2.25rem;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: .9rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      border-radius: 100px;
+      transition: border-color .25s, background .25s;
+    }
+    .btn-outline:hover {
+      border-color: var(--green);
+      background: var(--green-dim);
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      text-align: left;
+    }
+    .c-cell {
+      padding: 2rem 2.5rem;
+      border-right: 1px solid var(--border);
+    }
+    .c-cell:last-child { border-right: none; }
+    .c-label {
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: .4rem;
+    }
+    .c-val {
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      letter-spacing: -.01em;
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       FOOTER
+    ════════════════════════════════════════════════════════════════ */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 2.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-logo {
+      font-family: var(--serif);
+      font-size: 1.15rem;
+      letter-spacing: -.01em;
+    }
+    .footer-logo .accent { color: var(--green); }
+    .footer-meta {
+      font-size: .75rem;
+      color: var(--muted);
+      letter-spacing: .04em;
+    }
+    .footer-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+    .footer-links a {
+      font-size: .75rem;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      transition: color .2s;
+    }
+    .footer-links a:hover { color: var(--text); }
+
+    /* ════════════════════════════════════════════════════════════════
+       KEYFRAMES
+    ════════════════════════════════════════════════════════════════ */
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: none; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes scrollBlink {
+      0%, 100% { opacity: .4; }
+      50%       { opacity: 1; }
+    }
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       RESPONSIVE
+    ════════════════════════════════════════════════════════════════ */
+    @media (max-width: 960px) {
+      #hero { padding: 0 1.75rem 3.5rem; }
+      .hero-count { display: none; }
+      .hero-bottom { flex-direction: column; align-items: flex-start; gap: 2rem; }
+      .services-top { grid-template-columns: 1fr; }
+      .sr-body { grid-template-columns: 1fr; gap: .75rem; }
+      .sr-icon { display: none; }
+      .mission-grid { grid-template-columns: 1fr; gap: 4rem; }
+      .mission-left { position: static; }
+      .stats-bar { grid-template-columns: 1fr 1fr; }
+      .stat-cell { border-bottom: 1px solid var(--border); }
+      .process-row { grid-template-columns: 60px 1fr; }
+      .p-desc { grid-column: 1 / -1; padding-left: 80px; }
+      .contact-grid { grid-template-columns: 1fr; }
+      .c-cell { border-right: none; border-bottom: 1px solid var(--border); }
+      .c-cell:last-child { border-bottom: none; }
+      #nav { padding: 1.25rem 1.75rem; }
+      .nav-links { display: none; }
+      footer { flex-direction: column; align-items: flex-start; }
+      .container { padding: 0 1.75rem; }
+    }
+    @media (max-width: 540px) {
+      .hero-title { font-size: 3.25rem; }
+      .stats-bar { grid-template-columns: 1fr; }
+      .cta-row { flex-direction: column; align-items: stretch; }
+      .btn-primary, .btn-outline { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cursor -->
+  <div id="cur"><div id="cur-ball"></div></div>
+  <div id="cur-ring"></div>
+
+  <!-- ══ NAV ═══════════════════════════════════════════════════════════ -->
+  <nav id="nav">
+    <a href="#" class="nav-logo">Secure<span class="accent">Axis</span></a>
+    <ul class="nav-links">
+      <li><a href="#services">Services</a></li>
+      <li><a href="#mission">Mission</a></li>
+      <li><a href="#process">Process</a></li>
+      <li><a href="#contact" class="nav-btn">Get in Touch</a></li>
+    </ul>
+  </nav>
+
+  <!-- ══ HERO ══════════════════════════════════════════════════════════ -->
+  <section id="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-dots"></div>
+    <div class="hero-line"></div>
+
+    <!-- Side stats -->
+    <div class="hero-count">
+      <div class="hero-count-item">
+        <span class="n">200<span>+</span></span>
+        <span class="l">Engagements</span>
+      </div>
+      <div class="hero-count-item">
+        <span class="n">98<span>%</span></span>
+        <span class="l">Retention</span>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div style="position:relative; z-index:1; max-width:1200px;">
+      <div class="hero-eyebrow">Security Consulting &amp; Advisory</div>
+
+      <h1 class="hero-title">
+        Security<br />
+        without<br />
+        <span class="line-italic">compromise.</span>
+      </h1>
+
+      <div class="hero-bottom">
+        <p class="hero-sub">
+          SecureAxis partners with organisations to expose vulnerabilities, strengthen defences,
+          and build security postures that hold — before threat actors find what you haven't.
+        </p>
+
+        <div class="hero-cta-group">
+          <a href="#contact" class="btn-primary">
+            Start a conversation
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <div class="hero-scroll">
+            <span class="hero-scroll-line"></span>
+            Scroll to explore
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ TICKER ════════════════════════════════════════════════════════ -->
+  <div class="ticker-wrap" aria-hidden="true">
+    <div class="ticker-track">
+      <span class="ticker-item"><span class="dot"></span>Penetration Testing</span>
+      <span class="ticker-item"><span class="dot"></span>Security Audits</span>
+      <span class="ticker-item"><span class="dot"></span>Risk Assessment</span>
+      <span class="ticker-item"><span class="dot"></span>Incident Response</span>
+      <span class="ticker-item"><span class="dot"></span>Compliance Advisory</span>
+      <span class="ticker-item"><span class="dot"></span>Zero Trust Architecture</span>
+      <span class="ticker-item"><span class="dot"></span>Cloud Security</span>
+      <span class="ticker-item"><span class="dot"></span>CISO Advisory</span>
+      <!-- duplicate for seamless loop -->
+      <span class="ticker-item"><span class="dot"></span>Penetration Testing</span>
+      <span class="ticker-item"><span class="dot"></span>Security Audits</span>
+      <span class="ticker-item"><span class="dot"></span>Risk Assessment</span>
+      <span class="ticker-item"><span class="dot"></span>Incident Response</span>
+      <span class="ticker-item"><span class="dot"></span>Compliance Advisory</span>
+      <span class="ticker-item"><span class="dot"></span>Zero Trust Architecture</span>
+      <span class="ticker-item"><span class="dot"></span>Cloud Security</span>
+      <span class="ticker-item"><span class="dot"></span>CISO Advisory</span>
+    </div>
+  </div>
+
+  <!-- ══ SERVICES ══════════════════════════════════════════════════════ -->
+  <section id="services">
+    <div class="container">
+      <div class="services-top" data-reveal>
+        <div>
+          <div class="tag">What We Do</div>
+          <h2 class="display-heading">Built for<br /><em>real threats.</em></h2>
+        </div>
+        <p class="right">
+          Every engagement is tailored to your environment, your risk profile, and your
+          objectives. We don't do generic — we do thorough, evidence-based security work.
+        </p>
+      </div>
+
+      <!-- Row-based service list (Lando-style horizontal items) -->
+      <div>
+        <div class="service-row" data-reveal data-delay="1">
+          <div class="sr-num">01</div>
+          <div class="sr-body">
+            <div class="sr-name">Penetration Testing</div>
+            <div class="sr-desc">Controlled, adversarial assessments of your networks, applications, and
+              infrastructure — exposing exploitable weaknesses before attackers do.</div>
+            <div class="sr-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="service-row" data-reveal data-delay="2">
+          <div class="sr-num">02</div>
+          <div class="sr-body">
+            <div class="sr-name">Audits &amp; Compliance</div>
+            <div class="sr-desc">In-depth security posture reviews aligned with ISO 27001, SOC 2, NIST,
+              GDPR, and industry-specific frameworks — so you achieve and maintain certification.</div>
+            <div class="sr-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="service-row" data-reveal data-delay="3">
+          <div class="sr-num">03</div>
+          <div class="sr-body">
+            <div class="sr-name">Incident Response</div>
+            <div class="sr-desc">Rapid containment, forensic investigation, and recovery support when it
+              matters most — minimising impact and restoring operations with precision.</div>
+            <div class="sr-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="service-row" data-reveal data-delay="4">
+          <div class="sr-num">04</div>
+          <div class="sr-body">
+            <div class="sr-name">Risk &amp; Strategy Advisory</div>
+            <div class="sr-desc">Board-level guidance and strategic roadmaps that translate complex risk
+              landscapes into clear, prioritised security investment decisions.</div>
+            <div class="sr-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ STATS ═════════════════════════════════════════════════════════ -->
+  <section id="stats">
+    <div class="stats-bar">
+      <div class="stat-cell" data-reveal>
+        <div class="stat-num">200<sup>+</sup></div>
+        <div class="stat-label">Engagements Delivered</div>
+      </div>
+      <div class="stat-cell" data-reveal data-delay="1">
+        <div class="stat-num">98<sup>%</sup></div>
+        <div class="stat-label">Client Retention Rate</div>
+      </div>
+      <div class="stat-cell" data-reveal data-delay="2">
+        <div class="stat-num">0</div>
+        <div class="stat-label">Breaches on Our Watch</div>
+      </div>
+      <div class="stat-cell" data-reveal data-delay="3">
+        <div class="stat-num">12<sup>+</sup></div>
+        <div class="stat-label">Industries Served</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ MISSION ═══════════════════════════════════════════════════════ -->
+  <section id="mission">
+    <div class="container">
+      <div class="mission-grid">
+
+        <div class="mission-left" data-reveal>
+          <div class="tag">Our Mission</div>
+          <h2 class="display-heading">
+            We protect<br />what others<br /><em>overlook.</em>
+          </h2>
+          <p>SecureAxis was founded on one belief: every organisation deserves
+            world-class security expertise — not just the enterprise few.</p>
+          <p>Our team brings together offensive and defensive expertise, regulatory
+            knowledge, and a relentless focus on outcomes. We embed with your team,
+            understand your environment, and build security that works in the real world.</p>
+        </div>
+
+        <div class="mission-right">
+          <div class="pillar-card" data-reveal data-delay="1">
+            <div class="pillar-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <div>
+              <h4>Expertise First</h4>
+              <p>Certified, battle-tested consultants. We hire for depth, not breadth — every engagement is led by senior practitioners.</p>
+            </div>
+          </div>
+
+          <div class="pillar-card" data-reveal data-delay="2">
+            <div class="pillar-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+              </svg>
+            </div>
+            <div>
+              <h4>Full Transparency</h4>
+              <p>Clear findings, plain language. No padding reports — just the truth about your security posture and how to fix it.</p>
+            </div>
+          </div>
+
+          <div class="pillar-card" data-reveal data-delay="3">
+            <div class="pillar-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div>
+              <h4>Long-Term Partnership</h4>
+              <p>We stay engaged beyond the report. Remediation support, retesting, and strategic continuity are standard practice.</p>
+            </div>
+          </div>
+
+          <div class="pillar-card" data-reveal data-delay="4">
+            <div class="pillar-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+            </div>
+            <div>
+              <h4>Pragmatic Advice</h4>
+              <p>Grounded in your reality — budget, team size, risk tolerance. Security that you can actually implement and sustain.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ PROCESS ═══════════════════════════════════════════════════════ -->
+  <section id="process">
+    <div class="container">
+      <div class="process-head" data-reveal>
+        <div class="tag" style="justify-content:center;">How We Work</div>
+        <h2 class="display-heading">A clear path to<br /><em>stronger security.</em></h2>
+      </div>
+
+      <div class="process-row" data-reveal data-delay="1">
+        <div class="p-num">01</div>
+        <div class="p-title">Discovery</div>
+        <div class="p-desc">We listen first. Understanding your business, environment, and risk appetite before any work begins ensures every hour is spent with precision.</div>
+      </div>
+      <div class="process-row" data-reveal data-delay="2">
+        <div class="p-num">02</div>
+        <div class="p-title">Assessment</div>
+        <div class="p-desc">Rigorous, evidence-based testing and analysis — tailored to your specific threat model, attacker profile, and compliance requirements.</div>
+      </div>
+      <div class="process-row" data-reveal data-delay="3">
+        <div class="p-num">03</div>
+        <div class="p-title">Reporting</div>
+        <div class="p-desc">Clear, prioritised findings with executive summaries and technical detail. No filler — just what you need to act decisively.</div>
+      </div>
+      <div class="process-row" data-reveal data-delay="4">
+        <div class="p-num">04</div>
+        <div class="p-title">Remediation &amp; Retest</div>
+        <div class="p-desc">We stay with you through fix and validation — ensuring issues are resolved, not just closed. Closure requires proof, not promises.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CONTACT ════════════════════════════════════════════════════════ -->
+  <section id="contact">
+    <div class="contact-glow"></div>
+    <div class="container">
+      <div class="contact-inner">
+        <div class="tag" style="justify-content:center;" data-reveal>Get in Touch</div>
+        <h2 class="display-heading" data-reveal data-delay="1">
+          Ready to get<br /><em>serious?</em>
+        </h2>
+        <p data-reveal data-delay="2">
+          No pressure, no jargon. Whether you need a penetration test, a compliance
+          audit, or a strategic security roadmap — let's have an honest conversation.
+        </p>
+        <div class="cta-row" data-reveal data-delay="3">
+          <a href="mailto:hello@secureaxis.com" class="btn-primary">
+            hello@secureaxis.com
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </a>
+          <a href="tel:+1234567890" class="btn-outline">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13
+                a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72
+                c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91
+                a16 16 0 0 0 6.06 6.06l1.27-1.27a2 2 0 0 1 2.11-.45
+                c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            Call Us
+          </a>
+        </div>
+
+        <div class="contact-grid" data-reveal data-delay="4">
+          <div class="c-cell">
+            <div class="c-label">Email</div>
+            <div class="c-val">hello@secureaxis.com</div>
+          </div>
+          <div class="c-cell">
+            <div class="c-label">Location</div>
+            <div class="c-val">Global — Remote First</div>
+          </div>
+          <div class="c-cell">
+            <div class="c-label">Response Time</div>
+            <div class="c-val">Within 24 hours</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FOOTER ════════════════════════════════════════════════════════ -->
+  <footer>
+    <div class="footer-logo">Secure<span class="accent">Axis</span></div>
+    <span class="footer-meta">© 2026 SecureAxis. All rights reserved.</span>
+    <ul class="footer-links">
+      <li><a href="#">Privacy</a></li>
+      <li><a href="#">Terms</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </footer>
+
+  <!-- ══ SCRIPTS ════════════════════════════════════════════════════════ -->
+  <script>
+    /* ── Custom cursor ───────────────────────────────── */
+    const ball = document.getElementById('cur');
+    const ring = document.getElementById('cur-ring');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+
+    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+
+    (function track() {
+      rx += (mx - rx) * .11;
+      ry += (my - ry) * .11;
+      ball.style.cssText  = `left:${mx}px;top:${my}px`;
+      ring.style.cssText  = `left:${rx}px;top:${ry}px`;
+      requestAnimationFrame(track);
+    })();
+
+    document.querySelectorAll('a, button, .service-row, .pillar-card').forEach(el => {
+      el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+      el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+    });
+
+    /* ── Nav scroll ──────────────────────────────────── */
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => nav.classList.toggle('solid', scrollY > 60), { passive: true });
+
+    /* ── Reveal on scroll ────────────────────────────── */
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); } });
+    }, { threshold: .1, rootMargin: '0px 0px -50px 0px' });
+    document.querySelectorAll('[data-reveal]').forEach(el => io.observe(el));
+
+    /* ── Parallax glow orbs on mousemove ─────────────── */
+    document.addEventListener('mousemove', e => {
+      const x = (e.clientX / innerWidth  - .5) * 30;
+      const y = (e.clientY / innerHeight - .5) * 30;
+      document.querySelectorAll('.hero-glow, .contact-glow').forEach(g => {
+        g.style.transform = `translate(calc(-50% + ${x}px), ${y}px)`;
+      });
+    });
+
+    /* ── Count-up on stats ──────────────────────────── */
+    function countUp(el, target, suffix) {
+      let start = 0;
+      const step = () => {
+        start += Math.ceil(target / 60);
+        if (start >= target) { el.innerHTML = target + `<sup>${suffix}</sup>`; return; }
+        el.innerHTML = start + `<sup>${suffix}</sup>`;
+        requestAnimationFrame(step);
+      };
+      step();
+    }
+
+    const statsObs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        const el = e.target;
+        const raw = el.querySelector('.stat-num');
+        if (!raw) return;
+        const text = raw.textContent.trim();
+        const num  = parseInt(text);
+        const sup  = raw.querySelector('sup')?.textContent || '';
+        if (!isNaN(num) && num > 0) countUp(raw, num, sup);
+        statsObs.unobserve(el);
+      });
+    }, { threshold: .5 });
+    document.querySelectorAll('.stat-cell').forEach(el => statsObs.observe(el));
+  </script>
+</body>
+</html>
